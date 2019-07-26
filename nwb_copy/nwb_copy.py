@@ -15,7 +15,7 @@ from ndx_spectrum import Spectrum
 from nwbext_ecog import CorticalSurfaces, ECoGSubject
 
 
-def nwb_copy(old_file, new_file, objs=None):
+def nwb_copy(old_file, new_file, cp_objs={}):
     """
     Copy fields defined in 'obj', from existing NWB file to new NWB file.
 
@@ -25,9 +25,16 @@ def nwb_copy(old_file, new_file, objs=None):
         String such as '/path/to/old_file.nwb'.
     new_file : str, path
         String such as '/path/to/new_file.nwb'.
-    objs : str, list
-        List of strings of paths to objects inside current NWB file. Examples:
-        - 'processing/ecephys/data_interfaces/preprocess'
+    cp_objs : dict
+        Name:Value pairs (Group:Children) listing the groups and respective
+        children from the current NWB file to be copied. Children can be:
+        - Boolean, indicating an attribute (e.g. for institution, lab)
+        - List of strings, containing several children names
+        Example:
+        {'institution':True,
+         'lab':True,
+         'acquisition':['microphone'],
+         'ecephys':['LFP','DecompositionSeries']}
     """
 
     manager = get_manager()
@@ -41,25 +48,30 @@ def nwb_copy(old_file, new_file, objs=None):
                           session_start_time=datetime.now(tzlocal()))
         with NWBHDF5IO(new_file, mode='w', manager=manager, load_namespaces=False) as io2:
             #Institution name --------------------------------------------------
-            if nwb_old.institution is not None:
+            #if nwb_old.institution is not None:
+            if 'institution' in cp_objs:
                 nwb_new.institution = str(nwb_old.institution)
 
             #Lab name ----------------------------------------------------------
-            if nwb_old.lab is not None:
+            #if nwb_old.lab is not None:
+            if 'lab' in cp_objs:
                 nwb_new.lab = str(nwb_old.lab)
 
             #Session id --------------------------------------------------------
-            if nwb_old.session_id is not None:
+            #if nwb_old.session_id is not None:
+            if 'session' in cp_objs:
                 nwb_new.session_id = nwb_old.session_id
 
             #Devices -----------------------------------------------------------
-            if nwb_old.devices is not None:
+            #if nwb_old.devices is not None:
+            if 'devices' in cp_objs:
                 for aux in list(nwb_old.devices.keys()):
                     dev = Device(nwb_old.devices[aux].name)
                     nwb_new.add_device(dev)
 
             #Electrode groups --------------------------------------------------
-            if nwb_old.electrode_groups is not None:
+            #if nwb_old.electrode_groups is not None:
+            if 'electrode_groups' in cp_objs:
                 for aux in list(nwb_old.electrode_groups.keys()):
                     nwb_new.create_electrode_group(name=nwb_old.electrode_groups[aux].name,
                                                    description=nwb_old.electrode_groups[aux].description,
@@ -67,7 +79,8 @@ def nwb_copy(old_file, new_file, objs=None):
                                                    device=nwb_new.get_device(nwb_old.electrode_groups[aux].device.name))
 
             #Electrodes --------------------------------------------------------
-            if nwb_old.electrodes is not None:
+            #if nwb_old.electrodes is not None:
+            if 'electrodes' in cp_objs:
                 nElec = len(nwb_old.electrodes['x'].data[:])
                 for aux in np.arange(nElec):
                     nwb_new.add_electrode(x=nwb_old.electrodes['x'][aux],
@@ -88,7 +101,8 @@ def nwb_copy(old_file, new_file, objs=None):
                                                  data=nwb_old.electrodes[var].data[:])
 
             #Epochs ------------------------------------------------------------
-            if nwb_old.epochs is not None:
+            #if nwb_old.epochs is not None:
+            if 'epochs' in cp_objs:
                 nEpochs = len(nwb_old.epochs['start_time'].data[:])
                 for i in np.arange(nEpochs):
                     nwb_new.add_epoch(start_time=nwb_old.epochs['start_time'].data[i],
@@ -103,14 +117,16 @@ def nwb_copy(old_file, new_file, objs=None):
                                              data=nwb_old.epochs[var].data[:])
 
             #Invalid times -----------------------------------------------------
-            if nwb_old.invalid_times is not None:
+            #if nwb_old.invalid_times is not None:
+            if 'invalid_times' in cp_objs:
                 nInvalid = len(nwb_old.invalid_times['start_time'][:])
                 for aux in np.arange(nInvalid):
                     nwb_new.add_invalid_time_interval(start_time=nwb_old.invalid_times['start_time'][aux],
                                                       stop_time=nwb_old.invalid_times['stop_time'][aux])
 
             #Trials ------------------------------------------------------------
-            if nwb_old.trials is not None:
+            #if nwb_old.trials is not None:
+            if 'trials' in cp_objs:
                 nTrials = len(nwb_old.trials['start_time'])
                 for aux in np.arange(nTrials):
                     nwb_new.add_trial(start_time=nwb_old.trials['start_time'][aux],
@@ -125,7 +141,8 @@ def nwb_copy(old_file, new_file, objs=None):
                                              data=nwb_old.trials[var].data[:])
 
             #Intervals ---------------------------------------------------------
-            if nwb_old.intervals is not None:
+            #if nwb_old.intervals is not None:
+            if 'intervals' in cp_objs:
                 all_objs_names = list(nwb_old.intervals.keys())
                 for obj_name in all_objs_names:
                     obj_old = nwb_old.intervals[obj_name]
@@ -140,7 +157,8 @@ def nwb_copy(old_file, new_file, objs=None):
                     nwb_new.add_time_intervals(obj)
 
             #Stimulus ----------------------------------------------------------
-            if nwb_old.stimulus is not None:
+            #if nwb_old.stimulus is not None:
+            if 'stimulus' in cp_objs:
                 all_objs_names = list(nwb_old.stimulus.keys())
                 for obj_name in all_objs_names:
                     obj_old = nwb_old.stimulus[obj_name]
@@ -155,7 +173,8 @@ def nwb_copy(old_file, new_file, objs=None):
                     nwb_new.add_stimulus(obj)
 
             #Processing modules ------------------------------------------------
-            if 'ecephys' in nwb_old.processing:
+            #if 'ecephys' in nwb_old.processing:
+            if 'ecephys' in cp_objs:
                 all_proc_names = list(nwb_old.processing['ecephys'].data_interfaces.keys())
                 # Add ecephys module to NWB file
                 ecephys_module = ProcessingModule(name='ecephys',
