@@ -223,12 +223,6 @@ def copy_obj(obj_old, nwb_old, nwb_new):
                                               resolution=els.resolution,
                                               starting_time=els.starting_time)
 
-    # elif obj_type=='Spectrum':
-    #     #PSD shape: ('frequency', 'channel')
-    #     obj = Spectrum(name=obj_old.name,
-    #                    frequencies=obj_old.frequencies[:],
-    #                    power=obj_old.power)
-
     elif obj_type=='TimeSeries':
         obj = TimeSeries(name=obj_old.name,
                          description=obj_old.description,
@@ -238,5 +232,34 @@ def copy_obj(obj_old, nwb_old, nwb_new):
                          conversion=obj_old.conversion,
                          starting_time=obj_old.starting_time,
                          unit=obj_old.unit)
+
+
+    elif obj_type=='DecompositionSeries':
+        list_columns = []
+        for item in obj_old.bands.columns:
+            bp = VectorData(name=item.name,
+                            description=item.description,
+                            data=item.data[:])
+            list_columns.append(bp)
+        bandsTable = DynamicTable(name=obj_old.bands.name,
+                                  description=obj_old.bands.description,
+                                  columns=list_columns,
+                                  colnames=obj_old.bands.colnames)
+        obj = DecompositionSeries(name=obj_old.name,
+                                  data=obj_old.data[:],
+                                  description=obj_old.description,
+                                  metric=obj_old.metric,
+                                  unit=obj_old.unit,
+                                  rate=obj_old.rate,
+                                  #source_timeseries=lfp,
+                                  bands=bandsTable,)
+
+    elif obj_type=='Spectrum':
+        obj = Spectrum(name=obj_old.name,
+                       frequencies=obj_old.frequencies[:],
+                       power=obj_old.power)
+
+
+
 
     return obj
